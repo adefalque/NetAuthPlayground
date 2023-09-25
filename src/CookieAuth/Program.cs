@@ -1,5 +1,7 @@
+using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,6 +40,16 @@ app.MapGet("/", () => "Hello World2");
 app.MapGet("/test", () => "Test");
 app.MapGet("/secure", () => "Secured content").RequireAuthorization();
 
+app.MapGet("/user", (HttpContext ctx) =>
+{
+    if (!ctx.User.Identity.IsAuthenticated)
+    {
+        return Results.Unauthorized();
+    }
+
+    return Results.Content($"Welcome {ctx.User.FindFirstValue(ClaimTypes.Name)}");
+}).RequireAuthorization();
+
 app.MapPost("/login", async (HttpContext ctx) =>
 {
     await ctx.SignInAsync("cookie", new ClaimsPrincipal(
@@ -45,6 +57,7 @@ app.MapPost("/login", async (HttpContext ctx) =>
                 new[]
                 {
                     new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
+                    new Claim(ClaimTypes.Name, "jdoe"),
                 }, 
                 "cookie"
             )
