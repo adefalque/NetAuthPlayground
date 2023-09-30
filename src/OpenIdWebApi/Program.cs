@@ -38,22 +38,22 @@ app.UseAuthorization();
 
 app.MapGet("/user",  async (HttpContext ctx) =>
 {
-    var sb = new StringBuilder();
-    foreach (var claim in ctx.User.Claims)
-    {
-        sb.Append($"{claim.Type} = {claim.Value}\r\n");
-    }
-
-    var idToken = await ctx.GetTokenAsync(OpenIdConnectParameterNames.IdToken);
-
-    sb.Append($"IdToken = {idToken}");
+    var authenticateResult = await ctx.AuthenticateAsync();
     
-    return Results.Content(sb.ToString());
+    return new
+    {
+        UserClaims = ctx.User.Claims.Select(x => new { x.Type, x.Value }).ToList(),
+        AuthClaims = authenticateResult?.Principal?.Claims.Select(x => new { x.Type, x.Value }).ToList(),
+        AuthMetadata = authenticateResult?.Properties?.Items
+    };
 }).RequireAuthorization();
 
 app.MapGet("/login", async (HttpContext ctx) =>
 {
-    await ctx.ChallengeAsync();
+    await ctx.ChallengeAsync(new AuthenticationProperties
+    {
+        RedirectUri = "/user"
+    });
 });
 
 app.Run();
